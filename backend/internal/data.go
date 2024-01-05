@@ -107,7 +107,7 @@ func structureFromJSON(objs []map[string]interface{}) (map[string]SDTypeID, erro
 //
 // NOTE: This assumes the given table exists.
 func structureFromTable(db *sql.DB, table string) (map[string]SDTypeID, error) {
-	rows, err := db.Query("PRAGMA table_info(?)", table)
+	rows, err := db.Query("PRAGMA table_info(?);", table)
 	if err != nil {
 		return nil, err
 	}
@@ -155,6 +155,26 @@ func structureDiff(cs map[string]SDTypeID, rs map[string]SDTypeID) (map[string]S
     }
 
 	return diff, nil
+}
+
+func structureEq(s1 map[string]SDTypeID, s2 map[string]SDTypeID) bool {
+    for k1, v1 := range s1 {
+        v2, ok := s2[k1]
+
+        if !ok || v1 != v2 {
+            return false
+        }
+    }
+
+    for k2, v2 := range s2 {
+        v1, ok := s1[k2]
+
+        if !ok || v1 != v2 {
+            return false
+        }
+    }
+
+    return true
 }
 
 func structureString(s map[string]SDTypeID) string {
