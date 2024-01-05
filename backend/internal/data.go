@@ -4,39 +4,61 @@ import (
 	sql "database/sql"
 	"errors"
 	"fmt"
-    "strings"
+	"strings"
 )
 
 type SDTypeID uint
 
 // Unsigned integer identifiers for each suported type.
 const (
-    IntTypeID       = iota 
-    TextTypeID    = iota     
+	IntTypeID  = iota
+	TextTypeID = iota
 
-    // TODO: Consider adding more.
+	// TODO: Consider adding more.
 )
 
 // Type identifiers -> SQL type names.
-var SDTypeNames = map[SDTypeID]string {
-    IntTypeID:      "INTEGER",
-    TextTypeID:     "TEXT",
+var SDTypeNames = map[SDTypeID]string{
+	IntTypeID:  "INTEGER",
+	TextTypeID: "TEXT",
 }
 
 var SDTypeIDs = map[string]SDTypeID{
-    "INTEGER":  IntTypeID,
-    "TEXT":     TextTypeID,
+	"INTEGER": IntTypeID,
+	"TEXT":    TextTypeID,
+}
+
+// Type identifiers -> SQL Default values as strings.
+var SDTypeDefaults = map[SDTypeID]string{
+    IntTypeID: "0",
+    TextTypeID: "NULL",
 }
 
 func GetTypeID(t interface{}) (SDTypeID, error) {
-    switch t.(type) {
-    case int:
-        return IntTypeID, nil
-    case string:
-        return TextTypeID, nil
-    }
+	switch t.(type) {
+	case int:
+		return IntTypeID, nil
+	case string:
+		return TextTypeID, nil
+	}
 
-    return 0, errors.New("Unknown Type")
+	return 0, errors.New("Unknown Type")
+}
+
+// This function confirms that the given slice of objects is non-empty
+// AND contains no empty objects.
+func verifyDenseJSON(objs []map[string]interface{}) error {
+	if len(objs) == 0 {
+		return errors.New("Empty object list.")
+	}
+
+	for _, m := range objs {
+		if len(m) == 0 {
+			return errors.New("Empty object found in list.")
+		}
+	}
+
+	return nil
 }
 
 // Given a slice of JSON objects, returns a map which maps each
@@ -44,87 +66,200 @@ func GetTypeID(t interface{}) (SDTypeID, error) {
 //
 // Returns an error if an unknown type is found or the same key is mapped
 // to multiple different types.
-func uniqueKeys(objs []map[string]interface{}) (map[string]SDTypeID, error) {
-    m := make(map[string]SDTypeID)
+func structureFromJSON(objs []map[string]interface{}) (map[string]SDTypeID, error) {
+	s := make(map[string]SDTypeID)
 
-    for _, obj := range objs {
-        for key, val := range obj {
-            actualTID, err := GetTypeID(val)
+	for _, obj := range objs {
+		for key, val := range obj {
+			actualTID, err := GetTypeID(val)
 
-            if err != nil {
-                return nil, err
-            }
+			if err != nil {
+				return nil, err
+			}
 
-            expectedTID, ok := m[key]
-            
-            if !ok {
-                m[key] = actualTID
-            } else if actualTID != expectedTID {
-                return nil, fmt.Errorf("Type mismatch on field: %s", key)
-            }
-        }
-    }
+			expectedTID, ok := s[key]
 
-    return m, nil
-}
+			if !ok {
+				s[key] = actualTID
+			} else if actualTID != expectedTID {
+				return nil, fmt.Errorf("Type mismatch on field: %s", key)
+			}
+		}
+	}
 
-func getStructureString(structure map[string]SDTypeID) string {
-    var sb strings.Builder 
-
-    i := 0
-    for columnName, typeID := range structure {
-        sb.WriteString(columnName)
-        sb.WriteString(" ")
-        sb.WriteString(SDTypeNames[typeID])
-        
-        if i < len(structure) - 1 {
-            sb.WriteString(", ")
-        }
-
-        i++
-    }
-
-    return sb.String()
+	return s, nil
 }
 
 // Return the table structure in the form of a map which maps column
 // names to data types.
 //
 // NOTE: This assumes the given table exists.
-func getTableStructure(db *sql.DB, table string) (map[string]SDTypeID, error) {
-    rows, err := db.Query("PRAGMA table_info(?)", table)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+func structureFromTable(db *sql.DB, table string) (map[string]SDTypeID, error) {
+	rows, err := db.Query("PRAGMA table_info(?)", table)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    structure := make(map[string]SDTypeID)
+	s := make(map[string]SDTypeID)
 
-    var name string
-    var typeName string
+	var name string
+	var typeName string
 
-    for rows.Next() {
-        err = rows.Scan(&name, &typeName) 
+	for rows.Next() {
+		err = rows.Scan(&name, &typeName)
 
-        if err != nil {
-            return nil, err
-        }
+		if err != nil {
+			return nil, err
+		}
 
-        tid, ok := SDTypeIDs[typeName]
+		tid, ok := SDTypeIDs[typeName]
+		if !ok {
+			return nil, fmt.Errorf("Unknown type %s.", typeName)
+		}
+
+		s[name] = tid
+	}
+
+	return s, nil
+}
+
+// Given a current structure (cs) and a required structure (rs) returns
+// a structure containing all columns in rs which are not in cs.
+//
+// NOTE: rs contains a column which is in cs, but maps to a different type,
+// an error is returned.
+func structureDiff(cs map[string]SDTypeID, rs map[string]SDTypeID) (map[string]SDTypeID, error) {
+    diff := make(map[string]SDTypeID)
+
+    for reqName, reqType := range rs {
+        currType, ok := cs[reqName] 
+
         if !ok {
-            return nil, fmt.Errorf("Unknown type %s.", typeName)
+            diff[reqName] = reqType
+        } else if reqType != currType {
+            return nil, fmt.Errorf("Type mismatch on column %s.", reqName)
         }
-
-        structure[name] = tid
     }
 
-    return structure, nil
+	return diff, nil
 }
 
-func conformTable(table string, reqColumns map[string]SDTypeID) error {
+func structureString(s map[string]SDTypeID) string {
+	var sb strings.Builder
+
+	i := 0
+	for columnName, typeID := range s {
+		sb.WriteString(columnName)
+		sb.WriteString(" ")
+		sb.WriteString(SDTypeNames[typeID])
+
+		if i < len(s)-1 {
+			sb.WriteString(", ")
+		}
+
+		i++
+	}
+
+	return sb.String()
+}
+
+// This function will create the given table if it doesn't exist.
+// Otherwise, it will alter the table if needed to conform to
+// the required structure.
+func conformTable(db *sql.DB, table string, rs map[string]SDTypeID) error {
+	row := db.QueryRow(`
+        SELECT COUNT(*)
+        FROM sqlite_master
+        WHERE type="table" AND name="?";
+    `, table)
+
+	var count int
+	err := row.Scan(&count)
+
+	if err != nil {
+		return err
+	}
+
+	// Create a new table if needed.
+	if count == 0 {
+		_, err := db.Exec("CREATE TABLE ? (?);",
+			table, structureString(rs))
+
+		return err
+	}
+
+	// Otherwise, alter the current table if needed.
+	cs, err := structureFromTable(db, table)
+	if err != nil {
+		return err
+	}
+
+    ds, err := structureDiff(cs, rs)
+    if err != nil {
+        return err
+    }
+
+    // NOTE: due to race conditions, I will NOT be performing error checking
+    // after each column addition.
+    //
+    // It is possible that at the time of this addition, the required column has already
+    // been added. In this case, adding the column would result in an error even
+    // though nothing would go wrong after this point.
+    //
+    // If there is an ellusive SQL error at this step, it will slip by unnoticed.
+    // If the user attempts to send new columns with incosistent data types, an error
+    // might be missed as well.
+    //
+    // In either case, nothing will break, the user will simply get a confusing SQL
+    // error message later on.
+    //
+    // TODO: With more time, this should be addressed in a better way.
+
+    for colName, colType := range ds {
+        db.Exec(`
+           ALTER TABLE ? ADD COLUMN ? ?;
+        `, table, colName, SDTypeNames[colType])
+    }
+
     return nil
 }
 
-func insert(db *sql.DB, table string, data []map[string]interface{}) error {
-    return nil
+
+func objString(rs map[string]SDTypeID, obj map[string]interface{}) string {
+
+}
+
+// Insert Logic Flow.
+//
+// 1) We get a list of JSON objects from the user.
+// 2) Translate the list of objects into just its aggregate structure.
+// 3) Perform as needed table alterations:
+//      a) If the table does not exist, create a new table with
+//         the given aggregate structure.
+//      b) If the table does exist, compare its columns to that
+//         of the aggregate structure. Add new columns if needed,
+//         report an error if the given data's structure mismatches
+//         that of the prexisting columns.
+// 4) Finally, insert data into the table.
+
+func insert(db *sql.DB, table string, objs []map[string]interface{}) error {
+	err := verifyDenseJSON(objs)
+	if err != nil {
+		return err
+	}
+
+	rs, err := structureFromJSON(objs)
+	if err != nil {
+		return err
+	}
+
+    err = conformTable(db, table, rs)
+    if err != nil {
+        return err
+    }
+
+    // Finally, build our query, and insert!
+    var sb strings.Builder
+
 }
