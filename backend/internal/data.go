@@ -239,11 +239,14 @@ func conformTable(db *sql.DB, table string, rs map[string]SDTypeID) error {
 
 
 // Convert a JSON object of primitive values into a string ready for
-// SQL insertions.
-func objString(rs map[string]SDTypeID, obj map[string]interface{}) string {
-    var sb strings.Builder
-
+// SQL insertions. 
+//
+// NOTE: order gaurantees the ordering of columns in the resulting
+// string.
+func objString(rs map[string]SDTypeID, obj map[string]interface{}, order map[string]int) string {
+    colStrings := make([]string, len(rs))
     i := 0
+
     for colName, colType := range rs {
         var err error
         var strRep string 
@@ -254,24 +257,54 @@ func objString(rs map[string]SDTypeID, obj map[string]interface{}) string {
             strRep, err = SDValToString(val)
         } 
 
+        place := order[colName]
+
         // If there is an error creating a string representation
         // of our field, OR our object doesn't contain a value
         // for said field, we write the default string value for that
         // type instead.
         if err != nil || !ok {
-            sb.WriteString(SDTypeDefaults[colType])
+            colStrings[place] = SDTypeDefaults[colType]
         } else {
-            sb.WriteString(strRep)
-        }
-        
-        if i < len(rs) - 1 {
-            sb.WriteString(", ")
+            colStrings[place] = strRep
         }
 
         i++
     }
 
-    return sb.String() 
+    return strings.Join(colStrings, ", ")
+}
+
+// This function constructs and performs the actual insert query.
+// It should only be called after necessary checks and alterations
+// have been done on the given table.
+func forceInsert(db *sql.DB, table string, rs map[string]SDTypeID, objs []map[string]interface{}) error {
+    // First create an arbitrary ordering.
+    i := 0
+    order := make(map[string]int)
+    header := make([]string, len(rs))
+    for colName := range rs {
+        order[colName] = i
+        header[i] = colName
+        i++
+    }
+
+    headerString := strings.Join(header, ", ")
+
+    // Create object strings.
+    objValStrings := make([]string, len(objs))
+    i = 0
+    for _, obj := range objs {
+        objValStrings[i] = "(" + objString(rs, obj, order) + ")"
+        i++
+    }
+    objValsString := strings.Join(objValStrings, ", ")
+
+    _, err := db.Exec(`
+        INSERT INTO ?(?) VALUES ?;
+    `, table, headerString, objValsString)
+
+    return err
 }
 
 // Insert Logic Flow.
@@ -302,8 +335,6 @@ func insert(db *sql.DB, table string, objs []map[string]interface{}) error {
     if err != nil {
         return err
     }
-
-    // Finally, build our query, and insert!
-    var sb strings.Builder
-
+    
+    return forceInsert(db, table, rs, objs)
 }
