@@ -4,6 +4,7 @@ import (
 	sql "database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -34,15 +35,26 @@ var SDTypeDefaults = map[SDTypeID]string{
     TextTypeID: "NULL",
 }
 
-func GetTypeID(t interface{}) (SDTypeID, error) {
-	switch t.(type) {
+func SDGetTypeID(v interface{}) (SDTypeID, error) {
+	switch v.(type) {
 	case int:
 		return IntTypeID, nil
 	case string:
 		return TextTypeID, nil
 	}
 
-	return 0, errors.New("Unknown Type")
+	return 0, errors.New("Unknown type.")
+}
+
+func SDValToString(v interface{}) (string, error) {
+    switch val := v.(type) {
+    case int:
+        return strconv.Itoa(val), nil
+    case string:
+        return val, nil
+    }
+
+    return "", errors.New("Unknown type.")
 }
 
 // This function confirms that the given slice of objects is non-empty
@@ -71,7 +83,7 @@ func structureFromJSON(objs []map[string]interface{}) (map[string]SDTypeID, erro
 
 	for _, obj := range objs {
 		for key, val := range obj {
-			actualTID, err := GetTypeID(val)
+			actualTID, err := SDGetTypeID(val)
 
 			if err != nil {
 				return nil, err
@@ -226,8 +238,40 @@ func conformTable(db *sql.DB, table string, rs map[string]SDTypeID) error {
 }
 
 
+// Convert a JSON object of primitive values into a string ready for
+// SQL insertions.
 func objString(rs map[string]SDTypeID, obj map[string]interface{}) string {
+    var sb strings.Builder
 
+    i := 0
+    for colName, colType := range rs {
+        var err error
+        var strRep string 
+
+        val, ok := obj[colName] 
+
+        if ok {
+            strRep, err = SDValToString(val)
+        } 
+
+        // If there is an error creating a string representation
+        // of our field, OR our object doesn't contain a value
+        // for said field, we write the default string value for that
+        // type instead.
+        if err != nil || !ok {
+            sb.WriteString(SDTypeDefaults[colType])
+        } else {
+            sb.WriteString(strRep)
+        }
+        
+        if i < len(rs) - 1 {
+            sb.WriteString(", ")
+        }
+
+        i++
+    }
+
+    return sb.String() 
 }
 
 // Insert Logic Flow.
