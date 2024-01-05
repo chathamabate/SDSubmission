@@ -107,7 +107,7 @@ func structureFromJSON(objs []map[string]interface{}) (map[string]SDTypeID, erro
 //
 // NOTE: This assumes the given table exists.
 func structureFromTable(db *sql.DB, table string) (map[string]SDTypeID, error) {
-	rows, err := db.Query("PRAGMA table_info(?);", table)
+	rows, err := db.Query("PRAGMA table_info(" + table + ");")
 	if err != nil {
 		return nil, err
 	}
@@ -118,8 +118,12 @@ func structureFromTable(db *sql.DB, table string) (map[string]SDTypeID, error) {
 	var name string
 	var typeName string
 
+    var dummyNum int
+    var dummyPtr *interface{}
+
 	for rows.Next() {
-		err = rows.Scan(&name, &typeName)
+		err = rows.Scan(&dummyNum, &name, &typeName, 
+            &dummyNum, &dummyPtr, &dummyNum)
 
 		if err != nil {
 			return nil, err
@@ -132,6 +136,10 @@ func structureFromTable(db *sql.DB, table string) (map[string]SDTypeID, error) {
 
 		s[name] = tid
 	}
+
+    if err = rows.Err(); err != nil {
+        return nil, err 
+    }
 
 	return s, nil
 }
@@ -203,11 +211,10 @@ func conformTable(db *sql.DB, table string, rs map[string]SDTypeID) error {
 	row := db.QueryRow(`
         SELECT COUNT(*)
         FROM sqlite_master
-        WHERE type="table" AND name="?";
-    `, table)
+        WHERE type="table" AND name="` + table + "\";")
 
 	var count int
-	err := row.Scan(&count)
+    err := row.Scan(&count)
 
 	if err != nil {
 		return err
@@ -215,8 +222,8 @@ func conformTable(db *sql.DB, table string, rs map[string]SDTypeID) error {
 
 	// Create a new table if needed.
 	if count == 0 {
-		_, err := db.Exec("CREATE TABLE ? (?);",
-			table, structureString(rs))
+        _, err := db.Exec("CREATE TABLE " + table + 
+            "(" + structureString(rs) + ");")
 
 		return err
 	}
@@ -249,9 +256,8 @@ func conformTable(db *sql.DB, table string, rs map[string]SDTypeID) error {
     // TODO: With more time, this should be addressed in a better way.
 
     for colName, colType := range ds {
-        db.Exec(`
-           ALTER TABLE ? ADD COLUMN ? ?;
-        `, table, colName, SDTypeNames[colType])
+       db.Exec("ALTER TABLE " + table +
+            " ADD COLUMN " + colName +  " " + SDTypeNames[colType] + ";")
     }
 
     return nil
