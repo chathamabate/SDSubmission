@@ -2,6 +2,7 @@ package internal
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"testing"
 
@@ -240,5 +241,30 @@ func TestInsert(t *testing.T) {
     if count != len(objs1) + len(objs2) {
         t.Errorf("Incorrect row count %d.", count)
     }
+}
+
+func TestQuery(t *testing.T) {
+    db := prepareDB(t)
+    defer db.Close()
+
+    objs1 := []map[string]interface{}{
+        {
+            "name": "Bob",
+        },
+        {
+            "name": "Mark", 
+            "age": 24,
+        },
+        {
+            "name": "Dave", 
+            "zip": 00007,
+        },
+    }
+
+    ErrorIf(t, insert(db, "t1", objs1), "Error with data population.")
+
+    objs, err := query(db, "SELECT * FROM t1;") 
+    ErrorIf(t, err, "Error executing query.")
+    fmt.Println(objs)
 }
 

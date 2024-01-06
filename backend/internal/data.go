@@ -361,3 +361,66 @@ func insert(db *sql.DB, table string, objs []map[string]interface{}) error {
     
     return forceInsert(db, table, rs, objs)
 }
+
+func query(db *sql.DB, q string) ([]map[string]interface{}, error) {
+    rows, err := db.Query(q)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    columnTypes, err := rows.ColumnTypes()
+    if err != nil {
+        return nil, err
+    }
+
+    colNames, err := rows.Columns()
+    if err != nil {
+        return nil, err
+    }
+
+    // NOTE: This approach I took almost entirely from Stackoverflow.
+
+    numColumns := len(columnTypes)
+    finalRows := make([]map[string]interface{}, 0)
+
+    for rows.Next() {
+        scanArgs := make([]interface{}, numColumns)     
+
+        for i, v := range columnTypes {
+            switch v.DatabaseTypeName() {
+            case "TEXT":
+                scanArgs[i] = new(sql.NullString)
+                break
+            case "INTEGER":
+                scanArgs[i] = new(sql.NullInt64)
+                break
+            default:
+                return nil, fmt.Errorf("Unknown type %s.", v.DatabaseTypeName())
+            }
+        }
+
+        err := rows.Scan(scanArgs...)
+        if err != nil {
+            return nil, err
+        }
+        
+        obj := make(map[string]interface{})
+        for i, colName := range colNames {
+            switch v := scanArgs[i].(type) {
+            case *sql.NullString:
+                obj[colName] = v.String
+                break
+            case *sql.NullInt64:
+                obj[colName] = v.Int64
+                break
+            default:
+                return nil, fmt.Errorf("Unknown type at column %d.", i)
+            }
+        }
+
+        finalRows = append(finalRows, obj)
+    }
+
+    return finalRows, nil
+}
