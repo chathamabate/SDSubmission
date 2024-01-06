@@ -2,7 +2,6 @@ package internal
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 
@@ -247,7 +246,7 @@ func TestQuery(t *testing.T) {
     db := prepareDB(t)
     defer db.Close()
 
-    objs1 := []map[string]interface{}{
+    objs := []map[string]interface{}{
         {
             "name": "Bob",
         },
@@ -261,10 +260,19 @@ func TestQuery(t *testing.T) {
         },
     }
 
-    ErrorIf(t, insert(db, "t1", objs1), "Error with data population.")
+    ErrorIf(t, insert(db, "t1", objs), "Error with data population.")
 
-    objs, err := query(db, "SELECT * FROM t1;") 
+    resObjs, err := query(db, "SELECT * FROM t1;") 
     ErrorIf(t, err, "Error executing query.")
-    fmt.Println(objs)
+
+    if len(resObjs) != len(objs) {
+        t.Errorf("Incorrect number of result rows %d.", len(resObjs))
+    }
+
+    for _, obj := range resObjs {
+        if len(obj) != 3 {
+            t.Errorf("Incorrect number of columns %d.", len(obj))  
+        }
+    }
 }
 
