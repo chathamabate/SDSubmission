@@ -5,7 +5,6 @@ import (
 	sql "database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -45,7 +44,7 @@ func RunSQLiteServer(fn string) error {
 
     server := &http.Server{Addr: ":3000", Handler: mux}
 
-    log.Println("Starting server on port 3000.")
+    log.Println("Starting server on port 3000")
     // Start up server in the background.
     go func() {
         server.ListenAndServe()
@@ -57,7 +56,7 @@ func RunSQLiteServer(fn string) error {
     // Waiting for SIGINT (kill -2)
     <-stop
 
-    log.Println("Shutting down server.")
+    log.Println("Shutting down server")
 
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()  // Used for cleaning up above context.
@@ -69,6 +68,33 @@ func RunSQLiteServer(fn string) error {
     return nil
 }
 
+// NOTE: 
+// Both endpoints below will return a JSON object 
+// with structure:
+// {
+//      message: string
+//      data: any
+// }
+//
+// The message field can be used arbitrarily.
+// The intention is for it to hold error information
+// when needed.
+
+func writeError(w http.ResponseWriter, desc string, err error) {
+    emsg := "(" + desc + ")"
+
+    if err != nil {
+        emsg += " " + err.Error()
+        log.Println(emsg)
+    }
+
+    w.WriteHeader(http.StatusBadRequest)
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "message": emsg,
+        "data": nil,
+    })
+}
+   
 // These functions create closures around the given 
 // thread-safe database handle.
 
@@ -78,36 +104,87 @@ type queryHandler struct {
 
 // Expectes URL argument q which maps to query string.
 func (qh queryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+
     args, err := url.ParseQuery(r.URL.RawQuery)
 
     if err != nil {
-        log.Println("Error parsing query.")
-        return // TODO write error.
+        writeError(w, "Error parsing query from URL", err)
+        return 
     }
 
     q, ok := args["q"]
     if !ok {
-        log.Println("Query not provided.")
-        return // TODO write error.
+        writeError(w, "Query not provided", nil)
+        return 
     }
 
     objs, err := query(qh.db, q[0])
     if err != nil {
-        log.Println(err)
-        return // TODO
+        writeError(w, "Failed query", err)
+        return 
     }
-
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusCreated)
-    json.NewEncoder(w).Encode(objs) 
+    
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "message": "",
+        "data": objs,
+    })
 }
 
 type insertHandler struct {
     db *sql.DB
 }
 
-func (qh insertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "Hello from insert endpoint.\n")
+func (ih insertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+
+    args, err := url.ParseQuery(r.URL.RawQuery)
+
+    if err != nil {
+        writeError(w, "Error parsing query", err)
+        return 
+    }
+
+    t, ok := args["table"]
+    if !ok {
+        writeError(w, "Table not provided", nil)
+        return 
+    }
+
+    var reqObj interface{}
+    var reqSlice []map[string]interface{}
+
+    err = json.NewDecoder(r.Body).Decode(&reqObj)
+
+    if err != nil {
+        writeError(w, "Error decoding request body", err)
+        return 
+    }
+
+    switch v := reqObj.(type) {
+    case map[string]interface{}:
+        reqSlice = []map[string]interface{}{v}
+        break
+    case []map[string]interface{}:
+        reqSlice = v
+        break
+    default:
+        writeError(w, "Unexpected request body type", nil) 
+        return
+    }
+
+    err = insert(ih.db, t[0], reqSlice)
+    if err != nil {
+        writeError(w, "Data insertion error", err)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "message": "",
+        "data": nil,
+    })
 }
 
 

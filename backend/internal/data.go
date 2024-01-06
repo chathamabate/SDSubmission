@@ -12,7 +12,7 @@ type SDTypeID uint
 
 // Unsigned integer identifiers for each suported type.
 const (
-	IntTypeID  = iota
+	RealTypeID  = iota
 	TextTypeID = iota
 
 	// TODO: Consider adding more.
@@ -20,53 +20,55 @@ const (
 
 // Type identifiers -> SQL type names.
 var SDTypeNames = map[SDTypeID]string{
-	IntTypeID:  "INTEGER",
+	RealTypeID:  "REAL",
 	TextTypeID: "TEXT",
 }
 
 var SDTypeIDs = map[string]SDTypeID{
-	"INTEGER": IntTypeID,
+	"REAL": RealTypeID,
 	"TEXT":    TextTypeID,
 }
 
 // Type identifiers -> SQL Default values as strings.
 var SDTypeDefaults = map[SDTypeID]string{
-    IntTypeID: "0",
+    RealTypeID: "0.0",
     TextTypeID: "NULL",
 }
 
 func SDGetTypeID(v interface{}) (SDTypeID, error) {
 	switch v.(type) {
-	case int:
-		return IntTypeID, nil
+	case float64, int:
+		return RealTypeID, nil
 	case string:
 		return TextTypeID, nil
 	}
 
-	return 0, errors.New("Unknown type.")
+	return 0, errors.New("Unknown type!!!")
 }
 
 func SDValToString(v interface{}) (string, error) {
     switch val := v.(type) {
     case int:
         return strconv.Itoa(val), nil
+    case float64:
+        return strconv.FormatFloat(val, 'f', -1, 64), nil
     case string:
         return "\"" + val + "\"", nil
     }
 
-    return "", errors.New("Unknown type.")
+    return "", errors.New("Unknown type")
 }
 
 // This function confirms that the given slice of objects is non-empty
 // AND contains no empty objects.
 func verifyDenseJSON(objs []map[string]interface{}) error {
 	if len(objs) == 0 {
-		return errors.New("Empty object list.")
+		return errors.New("Empty object list")
 	}
 
 	for _, m := range objs {
 		if len(m) == 0 {
-			return errors.New("Empty object found in list.")
+			return errors.New("Empty object found in list")
 		}
 	}
 
@@ -131,7 +133,7 @@ func structureFromTable(db *sql.DB, table string) (map[string]SDTypeID, error) {
 
 		tid, ok := SDTypeIDs[typeName]
 		if !ok {
-			return nil, fmt.Errorf("Unknown type %s.", typeName)
+			return nil, fmt.Errorf("Unknown type %s", typeName)
 		}
 
 		s[name] = tid
@@ -158,7 +160,7 @@ func structureDiff(cs map[string]SDTypeID, rs map[string]SDTypeID) (map[string]S
         if !ok {
             diff[reqName] = reqType
         } else if reqType != currType {
-            return nil, fmt.Errorf("Type mismatch on column %s.", reqName)
+            return nil, fmt.Errorf("Type mismatch on column %s", reqName)
         }
     }
 
@@ -392,11 +394,11 @@ func query(db *sql.DB, q string) ([]map[string]interface{}, error) {
             case "TEXT":
                 scanArgs[i] = new(sql.NullString)
                 break
-            case "INTEGER":
+            case "REAL":
                 scanArgs[i] = new(sql.NullInt64)
                 break
             default:
-                return nil, fmt.Errorf("Unknown type %s.", v.DatabaseTypeName())
+                return nil, fmt.Errorf("Unknown type %s", v.DatabaseTypeName())
             }
         }
 
@@ -415,7 +417,7 @@ func query(db *sql.DB, q string) ([]map[string]interface{}, error) {
                 obj[colName] = v.Int64
                 break
             default:
-                return nil, fmt.Errorf("Unknown type at column %d.", i)
+                return nil, fmt.Errorf("Unknown type at column %d", i)
             }
         }
 
