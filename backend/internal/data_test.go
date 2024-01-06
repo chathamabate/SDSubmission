@@ -188,5 +188,57 @@ func TestForceInsert(t *testing.T) {
 
     err = forceInsert(db, "t1", rs, objs)
     ErrorIf(t, err, "Error inserting.")
+
+    row := db.QueryRow("SELECT COUNT(*) FROM t1;")
+    var count int
+    ErrorIf(t, row.Scan(&count), "Error getting count.")
+
+    if count != len(objs) {
+        t.Errorf("Incorrect row count %d.", count)
+    }
+}
+
+func TestInsert(t *testing.T) {
+    db := prepareDB(t)
+    defer db.Close()
+
+    objs1 := []map[string]interface{}{
+        {
+            "name": "Bob",
+        },
+        {
+            "name": "Mark", 
+            "age": 24,
+        },
+        {
+            "name": "Dave", 
+            "zip": 00007,
+        },
+    }
+
+    ErrorIf(t, insert(db, "t1", objs1), "Error with first insertion.")
+
+    objs2 := []map[string]interface{}{
+        {
+            "id": 12,
+            "name": "Alice",
+        },
+        {
+            "id": 14,
+            "name": "Josh", 
+        },
+    }
+
+    ErrorIf(t, insert(db, "t1", objs2), "Error with second insertion.")
+
+    // Confirm table structure.
+    
+    row := db.QueryRow("SELECT COUNT(*) FROM t1;")
+    var count int
+    ErrorIf(t, row.Scan(&count), "Error getting count.")
+
+    if count != len(objs1) + len(objs2) {
+        t.Errorf("Incorrect row count %d.", count)
+    }
 }
 
