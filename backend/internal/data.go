@@ -51,7 +51,7 @@ func SDValToString(v interface{}) (string, error) {
     case int:
         return strconv.Itoa(val), nil
     case string:
-        return val, nil
+        return "\"" + val + "\"", nil
     }
 
     return "", errors.New("Unknown type.")
@@ -317,19 +317,16 @@ func forceInsert(db *sql.DB, table string, rs map[string]SDTypeID, objs []map[st
 
     headerString := strings.Join(header, ", ")
 
-    // Create object strings.
-    objValStrings := make([]string, len(objs))
-    i = 0
-    for _, obj := range objs {
-        objValStrings[i] = "(" + objString(rs, obj, order) + ")"
-        i++
+    objStrings := make([]string, len(objs))
+    for i, obj := range objs {
+        objStrings[i] = "(" + objString(rs, obj, order) + ")"
     }
-    objValsString := strings.Join(objValStrings, ", ")
+    objsString := strings.Join(objStrings, ", ")
 
-    _, err := db.Exec(`
-        INSERT INTO ?(?) VALUES ?;
-    `, table, headerString, objValsString)
-
+    query := "INSERT INTO " + table + "(" + headerString + ") VALUES " +
+        objsString + ";";
+    
+    _, err := db.Exec(query)
     return err
 }
 

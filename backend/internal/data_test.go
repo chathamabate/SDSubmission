@@ -155,3 +155,38 @@ func TestConformTable(t *testing.T) {
     }
 }
 
+func TestForceInsert(t *testing.T) {
+    db := prepareDB(t)
+    defer db.Close()
+
+    // First create our table.
+    cs := map[string]SDTypeID{
+        "name": TextTypeID,
+        "age": IntTypeID,
+        "zip": IntTypeID,
+        "id": IntTypeID,
+    }
+    err := conformTable(db, "t1", cs)
+    ErrorIf(t, err, "Error conforming table.")
+
+    objs := []map[string]interface{}{
+        {
+            "name": "Bob",
+        },
+        {
+            "name": "Mark", 
+            "age": 24,
+        },
+        {
+            "name": "Dave", 
+            "zip": 00007,
+        },
+    }
+
+    rs, err := structureFromJSON(objs)
+    ErrorIf(t, err, "Error derriving structure from JSON")
+
+    err = forceInsert(db, "t1", rs, objs)
+    ErrorIf(t, err, "Error inserting.")
+}
+
