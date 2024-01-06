@@ -395,7 +395,7 @@ func query(db *sql.DB, q string) ([]map[string]interface{}, error) {
                 scanArgs[i] = new(sql.NullString)
                 break
             case "REAL":
-                scanArgs[i] = new(sql.NullInt64)
+                scanArgs[i] = new(sql.NullFloat64)
                 break
             default:
                 return nil, fmt.Errorf("Unknown type %s", v.DatabaseTypeName())
@@ -413,8 +413,8 @@ func query(db *sql.DB, q string) ([]map[string]interface{}, error) {
             case *sql.NullString:
                 obj[colName] = v.String
                 break
-            case *sql.NullInt64:
-                obj[colName] = v.Int64
+            case *sql.NullFloat64:
+                obj[colName] = v.Float64 
                 break
             default:
                 return nil, fmt.Errorf("Unknown type at column %d", i)

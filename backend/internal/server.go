@@ -20,7 +20,7 @@ import (
 func RunSQLiteServer(fn string) error {
     _, err := os.Stat(fn)
     if errors.Is(err, os.ErrNotExist) {
-        log.Printf("Creating new DB %s.\n", fn)
+        log.Printf("Creating new DB %s\n", fn)
         f, err := os.Create(fn)
         if err != nil {
             return err
@@ -30,7 +30,7 @@ func RunSQLiteServer(fn string) error {
         return err  // funky error running stat?
     }
 
-    log.Printf("Openning DB %s.\n", fn)
+    log.Printf("Openning DB %s\n", fn)
 
     db, err := sql.Open("sqlite3", fn)
     if err != nil {
@@ -153,7 +153,7 @@ func (ih insertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     }
 
     var reqObj interface{}
-    var reqSlice []map[string]interface{}
+    var reqSlice []map[string]interface{} = nil
 
     err = json.NewDecoder(r.Body).Decode(&reqObj)
 
@@ -166,8 +166,15 @@ func (ih insertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     case map[string]interface{}:
         reqSlice = []map[string]interface{}{v}
         break
-    case []map[string]interface{}:
-        reqSlice = v
+    case []interface{}:
+        reqSlice = make([]map[string]interface{}, len(v))
+        for i, entry := range v {
+            obj, ok := entry.(map[string]interface{})
+            if !ok {
+                writeError(w, "Unexpected request body type", nil) 
+            }
+            reqSlice[i] = obj
+        }
         break
     default:
         writeError(w, "Unexpected request body type", nil) 
