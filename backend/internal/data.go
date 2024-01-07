@@ -12,7 +12,7 @@ type SDTypeID uint
 
 // Unsigned integer identifiers for each suported type.
 const (
-	RealTypeID  = iota
+	RealTypeID = iota
 	TextTypeID = iota
 
 	// TODO: Consider adding more.
@@ -20,19 +20,19 @@ const (
 
 // Type identifiers -> SQL type names.
 var SDTypeNames = map[SDTypeID]string{
-	RealTypeID:  "REAL",
+	RealTypeID: "REAL",
 	TextTypeID: "TEXT",
 }
 
 var SDTypeIDs = map[string]SDTypeID{
 	"REAL": RealTypeID,
-	"TEXT":    TextTypeID,
+	"TEXT": TextTypeID,
 }
 
 // Type identifiers -> SQL Default values as strings.
 var SDTypeDefaults = map[SDTypeID]string{
-    RealTypeID: "0.0",
-    TextTypeID: "NULL",
+	RealTypeID: "0.0",
+	TextTypeID: "NULL",
 }
 
 func SDGetTypeID(v interface{}) (SDTypeID, error) {
@@ -47,16 +47,16 @@ func SDGetTypeID(v interface{}) (SDTypeID, error) {
 }
 
 func SDValToString(v interface{}) (string, error) {
-    switch val := v.(type) {
-    case int:
-        return strconv.Itoa(val), nil
-    case float64:
-        return strconv.FormatFloat(val, 'f', -1, 64), nil
-    case string:
-        return "\"" + val + "\"", nil
-    }
+	switch val := v.(type) {
+	case int:
+		return strconv.Itoa(val), nil
+	case float64:
+		return strconv.FormatFloat(val, 'f', -1, 64), nil
+	case string:
+		return "\"" + val + "\"", nil
+	}
 
-    return "", errors.New("Unknown type")
+	return "", errors.New("Unknown type")
 }
 
 // This function confirms that the given slice of objects is non-empty
@@ -120,12 +120,12 @@ func structureFromTable(db *sql.DB, table string) (map[string]SDTypeID, error) {
 	var name string
 	var typeName string
 
-    var dummyNum int
-    var dummyPtr *interface{}
+	var dummyNum int
+	var dummyPtr *interface{}
 
 	for rows.Next() {
-		err = rows.Scan(&dummyNum, &name, &typeName, 
-            &dummyNum, &dummyPtr, &dummyNum)
+		err = rows.Scan(&dummyNum, &name, &typeName,
+			&dummyNum, &dummyPtr, &dummyNum)
 
 		if err != nil {
 			return nil, err
@@ -139,9 +139,9 @@ func structureFromTable(db *sql.DB, table string) (map[string]SDTypeID, error) {
 		s[name] = tid
 	}
 
-    if err = rows.Err(); err != nil {
-        return nil, err 
-    }
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }
@@ -152,39 +152,39 @@ func structureFromTable(db *sql.DB, table string) (map[string]SDTypeID, error) {
 // NOTE: rs contains a column which is in cs, but maps to a different type,
 // an error is returned.
 func structureDiff(cs map[string]SDTypeID, rs map[string]SDTypeID) (map[string]SDTypeID, error) {
-    diff := make(map[string]SDTypeID)
+	diff := make(map[string]SDTypeID)
 
-    for reqName, reqType := range rs {
-        currType, ok := cs[reqName] 
+	for reqName, reqType := range rs {
+		currType, ok := cs[reqName]
 
-        if !ok {
-            diff[reqName] = reqType
-        } else if reqType != currType {
-            return nil, fmt.Errorf("Type mismatch on column %s", reqName)
-        }
-    }
+		if !ok {
+			diff[reqName] = reqType
+		} else if reqType != currType {
+			return nil, fmt.Errorf("Type mismatch on column %s", reqName)
+		}
+	}
 
 	return diff, nil
 }
 
 func structureEq(s1 map[string]SDTypeID, s2 map[string]SDTypeID) bool {
-    for k1, v1 := range s1 {
-        v2, ok := s2[k1]
+	for k1, v1 := range s1 {
+		v2, ok := s2[k1]
 
-        if !ok || v1 != v2 {
-            return false
-        }
-    }
+		if !ok || v1 != v2 {
+			return false
+		}
+	}
 
-    for k2, v2 := range s2 {
-        v1, ok := s1[k2]
+	for k2, v2 := range s2 {
+		v1, ok := s1[k2]
 
-        if !ok || v1 != v2 {
-            return false
-        }
-    }
+		if !ok || v1 != v2 {
+			return false
+		}
+	}
 
-    return true
+	return true
 }
 
 func structureString(s map[string]SDTypeID) string {
@@ -216,7 +216,7 @@ func conformTable(db *sql.DB, table string, rs map[string]SDTypeID) error {
         WHERE type="table" AND name="` + table + "\";")
 
 	var count int
-    err := row.Scan(&count)
+	err := row.Scan(&count)
 
 	if err != nil {
 		return err
@@ -224,8 +224,8 @@ func conformTable(db *sql.DB, table string, rs map[string]SDTypeID) error {
 
 	// Create a new table if needed.
 	if count == 0 {
-        _, err := db.Exec("CREATE TABLE " + table + 
-            "(" + structureString(rs) + ");")
+		_, err := db.Exec("CREATE TABLE " + table +
+			"(" + structureString(rs) + ");")
 
 		return err
 	}
@@ -236,100 +236,99 @@ func conformTable(db *sql.DB, table string, rs map[string]SDTypeID) error {
 		return err
 	}
 
-    ds, err := structureDiff(cs, rs)
-    if err != nil {
-        return err
-    }
+	ds, err := structureDiff(cs, rs)
+	if err != nil {
+		return err
+	}
 
-    // NOTE: due to race conditions, I will NOT be performing error checking
-    // after each column addition.
-    //
-    // It is possible that at the time of this addition, the required column has already
-    // been added. In this case, adding the column would result in an error even
-    // though nothing would go wrong after this point.
-    //
-    // If there is an ellusive SQL error at this step, it will slip by unnoticed.
-    // If the user attempts to send new columns with incosistent data types, an error
-    // might be missed as well.
-    //
-    // In either case, nothing will break, the user will simply get a confusing SQL
-    // error message later on.
-    //
-    // TODO: With more time, this should be addressed in a better way.
+	// NOTE: due to race conditions, I will NOT be performing error checking
+	// after each column addition.
+	//
+	// It is possible that at the time of this addition, the required column has already
+	// been added. In this case, adding the column would result in an error even
+	// though nothing would go wrong after this point.
+	//
+	// If there is an ellusive SQL error at this step, it will slip by unnoticed.
+	// If the user attempts to send new columns with incosistent data types, an error
+	// might be missed as well.
+	//
+	// In either case, nothing will break, the user will simply get a confusing SQL
+	// error message later on.
+	//
+	// TODO: With more time, this should be addressed in a better way.
 
-    for colName, colType := range ds {
-       db.Exec("ALTER TABLE " + table +
-            " ADD COLUMN " + colName +  " " + SDTypeNames[colType] + ";")
-    }
+	for colName, colType := range ds {
+		db.Exec("ALTER TABLE " + table +
+			" ADD COLUMN " + colName + " " + SDTypeNames[colType] + ";")
+	}
 
-    return nil
+	return nil
 }
 
-
 // Convert a JSON object of primitive values into a string ready for
-// SQL insertions. 
+// SQL insertions.
 //
 // NOTE: order gaurantees the ordering of columns in the resulting
 // string.
 func objString(rs map[string]SDTypeID, obj map[string]interface{}, order map[string]int) string {
-    colStrings := make([]string, len(rs))
-    i := 0
+	colStrings := make([]string, len(rs))
+	i := 0
 
-    for colName, colType := range rs {
-        var err error
-        var strRep string 
+	for colName, colType := range rs {
+		var err error
+		var strRep string
 
-        val, ok := obj[colName] 
+		val, ok := obj[colName]
 
-        if ok {
-            strRep, err = SDValToString(val)
-        } 
+		if ok {
+			strRep, err = SDValToString(val)
+		}
 
-        place := order[colName]
+		place := order[colName]
 
-        // If there is an error creating a string representation
-        // of our field, OR our object doesn't contain a value
-        // for said field, we write the default string value for that
-        // type instead.
-        if err != nil || !ok {
-            colStrings[place] = SDTypeDefaults[colType]
-        } else {
-            colStrings[place] = strRep
-        }
+		// If there is an error creating a string representation
+		// of our field, OR our object doesn't contain a value
+		// for said field, we write the default string value for that
+		// type instead.
+		if err != nil || !ok {
+			colStrings[place] = SDTypeDefaults[colType]
+		} else {
+			colStrings[place] = strRep
+		}
 
-        i++
-    }
+		i++
+	}
 
-    return strings.Join(colStrings, ", ")
+	return strings.Join(colStrings, ", ")
 }
 
 // This function constructs and performs the actual insert query.
 // It should only be called after necessary checks and alterations
 // have been done on the given table.
 func forceInsert(db *sql.DB, table string, rs map[string]SDTypeID, objs []map[string]interface{}) error {
-    // First create an arbitrary ordering.
-    i := 0
-    order := make(map[string]int)
-    header := make([]string, len(rs))
-    for colName := range rs {
-        order[colName] = i
-        header[i] = colName
-        i++
-    }
+	// First create an arbitrary ordering.
+	i := 0
+	order := make(map[string]int)
+	header := make([]string, len(rs))
+	for colName := range rs {
+		order[colName] = i
+		header[i] = colName
+		i++
+	}
 
-    headerString := strings.Join(header, ", ")
+	headerString := strings.Join(header, ", ")
 
-    objStrings := make([]string, len(objs))
-    for i, obj := range objs {
-        objStrings[i] = "(" + objString(rs, obj, order) + ")"
-    }
-    objsString := strings.Join(objStrings, ", ")
+	objStrings := make([]string, len(objs))
+	for i, obj := range objs {
+		objStrings[i] = "(" + objString(rs, obj, order) + ")"
+	}
+	objsString := strings.Join(objStrings, ", ")
 
-    query := "INSERT INTO " + table + "(" + headerString + ") VALUES " +
-        objsString + ";";
-    
-    _, err := db.Exec(query)
-    return err
+	query := "INSERT INTO " + table + "(" + headerString + ") VALUES " +
+		objsString + ";"
+
+	_, err := db.Exec(query)
+	return err
 }
 
 // Insert Logic Flow.
@@ -356,73 +355,73 @@ func insert(db *sql.DB, table string, objs []map[string]interface{}) error {
 		return err
 	}
 
-    err = conformTable(db, table, rs)
-    if err != nil {
-        return err
-    }
-    
-    return forceInsert(db, table, rs, objs)
+	err = conformTable(db, table, rs)
+	if err != nil {
+		return err
+	}
+
+	return forceInsert(db, table, rs, objs)
 }
 
 func query(db *sql.DB, q string) ([]map[string]interface{}, error) {
-    rows, err := db.Query(q)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	rows, err := db.Query(q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    columnTypes, err := rows.ColumnTypes()
-    if err != nil {
-        return nil, err
-    }
+	columnTypes, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
 
-    colNames, err := rows.Columns()
-    if err != nil {
-        return nil, err
-    }
+	colNames, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
 
-    // NOTE: This approach I took almost entirely from Stackoverflow.
+	// NOTE: This approach I took almost entirely from Stackoverflow.
 
-    numColumns := len(columnTypes)
-    finalRows := make([]map[string]interface{}, 0)
+	numColumns := len(columnTypes)
+	finalRows := make([]map[string]interface{}, 0)
 
-    for rows.Next() {
-        scanArgs := make([]interface{}, numColumns)     
+	for rows.Next() {
+		scanArgs := make([]interface{}, numColumns)
 
-        for i, v := range columnTypes {
-            switch v.DatabaseTypeName() {
-            case "TEXT":
-                scanArgs[i] = new(sql.NullString)
-                break
-            case "REAL":
-                scanArgs[i] = new(sql.NullFloat64)
-                break
-            default:
-                return nil, fmt.Errorf("Unknown type %s", v.DatabaseTypeName())
-            }
-        }
+		for i, v := range columnTypes {
+			switch v.DatabaseTypeName() {
+			case "TEXT":
+				scanArgs[i] = new(sql.NullString)
+				break
+			case "REAL":
+				scanArgs[i] = new(sql.NullFloat64)
+				break
+			default:
+				return nil, fmt.Errorf("Unknown type %s", v.DatabaseTypeName())
+			}
+		}
 
-        err := rows.Scan(scanArgs...)
-        if err != nil {
-            return nil, err
-        }
-        
-        obj := make(map[string]interface{})
-        for i, colName := range colNames {
-            switch v := scanArgs[i].(type) {
-            case *sql.NullString:
-                obj[colName] = v.String
-                break
-            case *sql.NullFloat64:
-                obj[colName] = v.Float64 
-                break
-            default:
-                return nil, fmt.Errorf("Unknown type at column %d", i)
-            }
-        }
+		err := rows.Scan(scanArgs...)
+		if err != nil {
+			return nil, err
+		}
 
-        finalRows = append(finalRows, obj)
-    }
+		obj := make(map[string]interface{})
+		for i, colName := range colNames {
+			switch v := scanArgs[i].(type) {
+			case *sql.NullString:
+				obj[colName] = v.String
+				break
+			case *sql.NullFloat64:
+				obj[colName] = v.Float64
+				break
+			default:
+				return nil, fmt.Errorf("Unknown type at column %d", i)
+			}
+		}
 
-    return finalRows, nil
+		finalRows = append(finalRows, obj)
+	}
+
+	return finalRows, nil
 }
