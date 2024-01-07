@@ -1,4 +1,5 @@
 <script>
+    import Tailwind from "./Tailwind.svelte";
     let people = [
         {name: "Bob", age: 24},
         {name: "Dave", age: 21},
@@ -6,7 +7,8 @@
     ];
 </script>
 
-<main>
+<Tailwind />
+<main class="bg-red-300">
     {#each people as person}
 	    <h1>Hello {person.name}</h1>
     {/each}
@@ -14,6 +16,6 @@
 
 <style>
 	main {
-        color: black;
+        color: green;
     }
 </style>
