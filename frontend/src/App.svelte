@@ -14,8 +14,8 @@
     }
 
 </script>
-    <StructureSelector />
+   
 <main>
-    
+    <StructureSelector /> 
 </main>
 

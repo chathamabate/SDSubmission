@@ -1,75 +1,82 @@
 <script>
     import Choice from "./Choice.svelte";
 
-    export const TYPE_MAP = {
-        "REAL": 0,
+    export const TYPES = [
+        "REAL", "TEXT"
+    ];
+    export const TYPE_IDS = {
+        "REAL": 0,  // ID = index in type array.
         "TEXT": 1,
     };
+
+    // This property should be a function which
+    // receives a copy of the represented structure.
+    export let structureHandler;
 
     let structure = [];
 
     function addRow() {
-        structure.push({"name": "Name", "type": 0});
+        structure.push({"name": "Name", "type_id": 0});
         structure = structure;  // Rerender pls.
-
-        console.log(structure)
-    }
-
-    function choiceHandler(i) {
-        return (typeName) => {
-            structure[i].type = TYPE_MAP[typeName]
-        };
     }
 
     function removeRow(i) {
         structure.splice(i, 1)
         structure = structure;
+
+        console.log(structure)
     }
 </script>
 
-<div>
-    <table class="struct-table">
-        <tr>
-            <th>Column Name</th>
-            <th>Type</th>
-            <th>.</th>
-        </tr>
+<div class="struct-container wide">
+    <h1 class="header">
+        Specify Structure
+    </h1>
+    <div class="struct-table">
         {#each structure as column, i}
-            <tr>
-                <th>
+            <div class="struct-row">
+                <div class="flexible">
                     <input bind:value={column.name} />
-                </th>
-                <th>
-                    <Choice choices={Object.keys(TYPE_MAP)} choiceHandler={(tn) => structure[i].type = TYPE_MAP[tn]} />
-                </th>
-                <th>
-                    <button class="remove-row" on:click={() => removeRow(i)}>
-                        -
+                </div>
+                <div class="inflexible">
+                    <Choice choices={TYPES} 
+                        ci={structure[i].type_id}
+                        choiceHandler={(tn) => structure[i].type_id = TYPE_IDS[tn]} />
+                </div>
+                <div class="inflexible">
+                    <button class="tall padded-element exit-button" on:click={() => removeRow(i)}>
+                        X
                     </button>
-                </th>
-            </tr>
+                </div>
+            </div>
         {/each}
-    </table>
-    <button class="add-row" on:click={addRow}>
-        +
-    </button>
+        </div>
+    <div class="footer">
+        <button class="flexible padded-element simple-button" on:click={addRow}>
+            Add Column
+        </button>
+        <button class="flexible padded-element simple-button" on:click={addRow}>
+            Create Insert Request
+        </button>
+    </div>
 </div>
 
 <style>
-    .struct-table {
-        width: 100%;
+    .struct-container {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .header {
+        text-align: center;
+        font-size: 1.5em;
     }
 
-    .add-row {
-        width: 100%;
-        border: 2px solid black;
-        border-radius: 10px;
-        text-align: center;
+    .struct-row {
+        height: 1.5em;
+        display: flex;
     }
 
-    .remove-row {
-        border: 2px solid black;
-        border-radius: 10px;
-        text-align: center;
+    .footer {
+        display: flex;
     }
 </style>
