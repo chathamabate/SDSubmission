@@ -2,7 +2,7 @@ html, body {
 	position: relative;
 	width: 100%;
 	height: 100%;
-    font-size: 14px;
+    font-size: 12px;
     margin: 0px;
     font-family: Tahoma, sans-serif;
 }
@@ -13,21 +13,26 @@ button {
     border-width: 0px;
 }
 
-input {
+input, textarea {
     width: 100%;
-    height: 100%;    
+    height: 100%;
+    resize: none;
     
-    text-align: center;
     background-color: white;
     border: none;
     padding: 0px;
 }
 
-input:hover {
+/* Text area will not have centered text */
+input {
+    text-align: center;
+}
+
+input:hover, textarea:hover {
     background-color: lightseagreen;
 }
 
-input:focus {
+input:focus, textarea:focus {
     background-color: rgba(150, 200, 150);
     outline: none;
 }
@@ -75,6 +80,10 @@ input:focus {
     text-align: left;
 }
 
+.container {
+    padding: 20px;
+}
+
 .row-height {
     height: 1.5em;
 }
@@ -83,12 +92,21 @@ input:focus {
     border-bottom: solid 1px black;
 }
 
+.break {
+    height: 2em;
+}
+
 .centered-text {
     text-align: center;
 }
 
 .wide {
     width: 100%;
+}
+
+.tight {
+    margin-left: 20%;
+    margin-right: 20%;
 }
 
 .tall {
@@ -109,4 +127,16 @@ input:focus {
 
 .unflexible {
     flex: 0;
+}
+
+.placeholder {
+    color: transparent;
+}
+
+/* Data Type Style: consider moving this to another file */
+
+.col-type {
+    font-style: italic;
+    color: grey;
+    font-size: .7em;
 }

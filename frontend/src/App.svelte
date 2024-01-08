@@ -1,6 +1,8 @@
 <script>
     import Choice from "./lib/Choice.svelte";
     import DataTable from "./lib/DataTable.svelte";
+    import Inserter from "./lib/Inserter.svelte";
+    import QueryViewer from "./lib/QueryViewer.svelte";
     import ResultTable from "./lib/ResultTable.svelte";
     import StructureSelector from "./lib/StructureSelector.svelte";
 
@@ -23,7 +25,7 @@
 </script>
    
 <main>
-    <StructureSelector structureHandler={(n, s) => console.log(n, s)} />
-    <DataTable tableName={"MyTable"} structure={st} dataHandler={(n, d) => console.log(n, d)} />
+    <QueryViewer />
+    <Inserter />
 </main>
 
