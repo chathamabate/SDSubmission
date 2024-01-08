@@ -5,9 +5,9 @@
     import StructureSelector from "./lib/StructureSelector.svelte";
 
     let st = [
-        {name: "Name", type_id: 1},
-        {name: "Age", type_id: 0},
-        {name: "Job", type_id: 1},
+        {name: "Name", typeID: 1},
+        {name: "Age", typeID: 0},
+        {name: "Job", typeID: 1},
     ];
     let people = [
         {name: "Bob Allen", age: 24, id: 1},
@@ -23,6 +23,7 @@
 </script>
    
 <main>
-    <DataTable structure={st} dataHandler={handler} />
+    <StructureSelector structureHandler={(n, s) => console.log(n, s)} />
+    <DataTable tableName={"MyTable"} structure={st} dataHandler={(n, d) => console.log(n, d)} />
 </main>
 

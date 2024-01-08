@@ -2,13 +2,14 @@
     import { TYPES, TYPE_DEFAULTS, TYPE_IDS } from "./Data";
 
     // Should be in the format return from StructureSelector.
+    export let tableName;
     export let structure;
     export let dataHandler;
 
     let data = [];
 
     function addRow() {
-        let newRow = structure.map((c) => TYPE_DEFAULTS[c.type_id]);
+        let newRow = structure.map((c) => TYPE_DEFAULTS[c.typeID]);
         data.push(newRow);
         data = data;
     }
@@ -19,30 +20,53 @@
     }
 
     function submitRequest() {
-        // 2D copy.
-        let dataCopy = data.map(row => {
-            let entry = {}
-            structure.forEach((v, i) => entry[v.name] = row[i]);
-            return entry;
-        });
+        if (data.length == 0) {
+            alert("Cannot submit empty request.");
+            return;
+        }
 
-        dataHandler(dataCopy);
+       let dataCopy = new Array(data.length);
+
+        for (let ri = 0; ri < data.length; ri++) {
+            let entry = {};
+            for (let ci = 0; ci < structure.length; ci++) {
+                let expType = structure[ci].typeID;
+                
+                if (expType == TYPE_IDS["REAL"]) {
+                    let val = parseFloat(data[ri][ci]);
+                    if (isNaN(val)) {
+                        alert("REAL required at (" + ri + ", " + ci + ")");
+                        return;
+                    }
+                    entry[structure[ci].name] = val;
+                } else {
+                    entry[structure[ci].name] = data[ri][ci];
+                }
+            }
+
+            dataCopy[ri] = entry;
+        }
+
+        dataHandler(tableName, dataCopy);
     }
 </script>
 
 <div class="wide">
-    <div class="flex header divider">
+    <div class="title-bar">
+        {tableName}
+    </div>
+    <div class="flex divider">
         {#each structure as col}
             <div class="flexible">
                 <div class="centered-text col-name">
                     {col.name}
                 </div>
                 <div class="centered-text col-type">
-                    {TYPES[col.type_id]}
+                    {TYPES[col.typeID]}
                 </div>
             </div>
         {/each}
-        <div class="unflexible padded-element corner">
+        <div class="unflexible padded-element placeholder">
             X
         </div>
     </div>
@@ -72,7 +96,7 @@
 </div>
 
 <style>
-    .corner {
+    .placeholder {
         color: transparent;
     }
 
