@@ -23,6 +23,6 @@
 </script>
    
 <main>
-    <DataTable structure={st} />
+    <DataTable structure={st} dataHandler={handler} />
 </main>
 

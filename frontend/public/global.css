@@ -2,6 +2,7 @@ html, body {
 	position: relative;
 	width: 100%;
 	height: 100%;
+    font-size: 14px;
     margin: 0px;
     font-family: Tahoma, sans-serif;
 }
@@ -60,6 +61,10 @@ input:focus {
 }
 
 /* MISC CLASSES */
+
+.row-height {
+    height: 1.5em;
+}
 
 .divider {
     border-bottom: solid 1px black;
