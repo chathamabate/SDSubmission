@@ -1,7 +1,14 @@
 <script>
     import Choice from "./lib/Choice.svelte";
+    import DataTable from "./lib/DataTable.svelte";
     import ResultTable from "./lib/ResultTable.svelte";
     import StructureSelector from "./lib/StructureSelector.svelte";
+
+    let st = [
+        {name: "Name", type_id: 1},
+        {name: "Age", type_id: 0},
+        {name: "Job", type_id: 1},
+    ];
     let people = [
         {name: "Bob Allen", age: 24, id: 1},
         {name: "Dave Smith", age: 21, id: 2},
@@ -16,6 +23,6 @@
 </script>
    
 <main>
-    <StructureSelector /> 
+    <DataTable structure={st} />
 </main>
 

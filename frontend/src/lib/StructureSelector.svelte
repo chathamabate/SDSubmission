@@ -1,13 +1,6 @@
 <script>
     import Choice from "./Choice.svelte";
-
-    export const TYPES = [
-        "REAL", "TEXT"
-    ];
-    export const TYPE_IDS = {
-        "REAL": 0,  // ID = index in type array.
-        "TEXT": 1,
-    };
+    import { TYPES, TYPE_IDS } from "./Data";
 
     // This property should be a function which
     // receives a copy of the represented structure.
@@ -23,8 +16,14 @@
     function removeRow(i) {
         structure.splice(i, 1)
         structure = structure;
+    }
 
-        console.log(structure)
+    function submitStructure() {
+        // The map below ensures that we send a deep copy to whomever is
+        // using this structure.
+        structureHandler(
+            structure.map(c => ({"name": c.name, "type_id": c.type_id}))
+        );
     }
 </script>
 
@@ -34,7 +33,7 @@
     </h1>
     <div class="struct-table">
         {#each structure as column, i}
-            <div class="struct-row">
+            <div class="struct-row divider">
                 <div class="flexible">
                     <input bind:value={column.name} />
                 </div>
@@ -51,12 +50,12 @@
             </div>
         {/each}
         </div>
-    <div class="footer">
+    <div class="flex">
         <button class="flexible padded-element simple-button" on:click={addRow}>
             Add Column
         </button>
-        <button class="flexible padded-element simple-button" on:click={addRow}>
-            Create Insert Request
+        <button class="flexible padded-element simple-button" on:click={submitStructure}>
+            Create Request
         </button>
     </div>
 </div>
@@ -66,6 +65,7 @@
         border-radius: 10px;
         overflow: hidden;
     }
+    
     .header {
         text-align: center;
         font-size: 1.5em;
@@ -73,10 +73,6 @@
 
     .struct-row {
         height: 1.5em;
-        display: flex;
-    }
-
-    .footer {
         display: flex;
     }
 </style>
