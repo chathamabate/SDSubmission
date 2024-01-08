@@ -44,13 +44,17 @@
 </div>
 <div class="container">
     <div class="tight">
-        <StructureSelector structureHandler={structureHandler} />
+        <div class="rounded">
+            <StructureSelector structureHandler={structureHandler} />
+        </div>
     </div>
     
     {#if structure.length > 0}
         <div class="break">
         </div>
 
-        <DataTable tableName={tableName} structure={structure} dataHandler={insertData} />
+        <div class="rounded">
+            <DataTable tableName={tableName} structure={structure} dataHandler={insertData} />
+        </div>
     {/if}
 </div>

@@ -33,18 +33,24 @@
     <div class="title-bar">
         Query Data
     </div>
-    <div class="flex">
-        <textarea class="flexible padded-element" placeholder="Enter Query..." bind:value={queryText}/>
-    </div>
-    <button class="simple-button padded-element wide" on:click={submit}>
-        Submit 
-    </button>
 
-    {#await dataPromise}
-        <div></div>
-    {:then data}
-        {#if data != null && data.length > 0}
-            <ResultTable data={data} />
-        {/if}
-    {/await}
+    <div class="container">
+        <div class="rounded">
+            <div class="flex">
+                <textarea class="flexible padded-element" placeholder="Enter Query..." bind:value={queryText}/>
+            </div>
+            <button class="simple-button padded-element wide" on:click={submit}>
+                Submit 
+            </button>
+        </div>
+
+        {#await dataPromise}
+            <div></div>
+        {:then data}
+            {#if data != null && data.length > 0}
+                <div class="break"></div>                
+                <ResultTable data={data} />
+            {/if}
+        {/await}
+    </div>
 </div>

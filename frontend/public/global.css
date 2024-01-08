@@ -5,6 +5,7 @@ html, body {
     font-size: 12px;
     margin: 0px;
     font-family: Tahoma, sans-serif;
+    background-color: rgb(178, 178, 178);
 }
 
 /* Input/Button Styles */
@@ -18,7 +19,7 @@ input, textarea {
     height: 100%;
     resize: none;
     
-    background-color: white;
+    background-color: rgb(240, 240, 250);
     border: none;
     padding: 0px;
 }
@@ -72,7 +73,7 @@ input:focus, textarea:focus {
 /* MISC CLASSES */
 
 .title-bar {
-    padding: 8px;
+    padding: 6px;
     font-size: 1.3em;
 
     color: white;
@@ -80,8 +81,19 @@ input:focus, textarea:focus {
     text-align: left;
 }
 
+.section {
+    margin-left: 10%;
+    margin-right: 10%;
+    background-color: white;
+}
+
 .container {
     padding: 20px;
+}
+
+.rounded {
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 .row-height {
