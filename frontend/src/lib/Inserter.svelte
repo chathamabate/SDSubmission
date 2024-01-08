@@ -2,7 +2,7 @@
     import DataTable from "./DataTable.svelte";
     import StructureSelector from "./StructureSelector.svelte";
 
-    const INSERT_URL = "http://localhost:3000/data";
+    const INSERT_URL = "http://157.245.119.61:3000/data";
 
     let tableName = "";
     let structure = [];

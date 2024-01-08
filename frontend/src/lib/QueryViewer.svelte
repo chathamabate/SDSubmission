@@ -1,7 +1,7 @@
 <script>
     import ResultTable from "./ResultTable.svelte";
 
-    const QUERY_URL = "http://localhost:3000/query"
+    const QUERY_URL = "http://157.245.119.61:3000/query"
     let queryText = "";
     let dataPromise = null;
 
