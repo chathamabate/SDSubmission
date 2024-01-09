@@ -22,5 +22,12 @@
       cmd: npm install
       chdir: ~/sd/frontend
 
+  - name: Stop Old Server (If Running)
+    command: 'pkill -f npm'
+    ignore_errors: true
 
+  - name: Start New Web Server
+    command: 'npm start --prefix ~/sd/frontend'
+    async: 1000 
+    poll: 0
 

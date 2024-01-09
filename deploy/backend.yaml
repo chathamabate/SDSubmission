@@ -23,7 +23,7 @@
       chdir: ~/sd/backend/cmd
 
   - name: Stop Old Server (If Running)
-    command: 'pkill -f sd-server'
+    command: 'pkill -2 -f sd-server'
     ignore_errors: true
 
   - name: Start New Server
