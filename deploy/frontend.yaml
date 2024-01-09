@@ -28,6 +28,5 @@
 
   - name: Start New Web Server
     command: 'npm start --prefix ~/sd/frontend'
-    async: 1000 
+    async: 604800 # THIS IS PROBLEMATIC
     poll: 0
-

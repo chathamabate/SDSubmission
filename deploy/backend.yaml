@@ -28,8 +28,6 @@
 
   - name: Start New Server
     command: '~/sd-server'
-    async: 1000 # This number is just a placeholder.
-                # The playbook should exit without terminating
-                # the new server.
+    async: 604800 
     poll: 0
 
