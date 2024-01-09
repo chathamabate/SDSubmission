@@ -1,0 +1,19 @@
+- name: Update DB Servers
+  hosts: dbservers
+  
+
+  tasks:
+  - name: Install SQLite3
+    ansible.builtin.apt:
+      name: sqlite3
+      state: latest
+
+  - name: Install Go
+    ansible.builtin.apt:
+      name: golang-go
+      state: latest
+
+  - name: Get ScratchDB Repo
+    ansible.builtin.git:
+      repo: 'https://github.com/chathamabate/SDSubmission.git'
+      dest: ~/sd
