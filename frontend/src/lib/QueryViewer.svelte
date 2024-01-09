@@ -36,7 +36,7 @@
 
     <div class="container">
         <div class="rounded">
-            <div class="flex">
+            <div class="flex divider">
                 <textarea class="flexible padded-element" placeholder="Enter Query..." bind:value={queryText}/>
             </div>
             <button class="simple-button padded-element wide" on:click={submit}>
