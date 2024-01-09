@@ -1,12 +1,12 @@
 <script>
     import ResultTable from "./ResultTable.svelte";
+    import { BACKEND_QUERY_URL } from "./BackendInfo.js";
 
-    const QUERY_URL = "http://157.245.119.61:3000/query"
     let queryText = "";
     let dataPromise = null;
 
     async function query() {
-        let resp = await fetch(QUERY_URL + "?q=" + queryText, {
+        let resp = await fetch(BACKEND_QUERY_URL + "?q=" + queryText, {
             method: "GET"
         });
         let respJSON = await resp.json();

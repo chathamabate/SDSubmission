@@ -1,8 +1,7 @@
 <script>
     import DataTable from "./DataTable.svelte";
     import StructureSelector from "./StructureSelector.svelte";
-
-    const INSERT_URL = "http://157.245.119.61:3000/data";
+    import { BACKEND_INSERT_URL } from "./BackendInfo.js";
 
     let tableName = "";
     let structure = [];
@@ -19,7 +18,7 @@
     async function insertData(tName, data) {
         console.log(data);
         let resp = await fetch(
-            INSERT_URL + "?table=" + tName,
+            BACKEND_INSERT_URL + "?table=" + tName,
             {
                 method: "POST",
                 headers: {
