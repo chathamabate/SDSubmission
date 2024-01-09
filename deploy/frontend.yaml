@@ -22,7 +22,11 @@
       cmd: npm install
       chdir: ~/sd/frontend
 
-  - name: Stop Old Server (If Running)
+  - name: Stop Old Server (If Running) (Node)
+    command: 'pkill -f node'
+    ignore_errors: true
+
+  - name: Stop Old Server (If Running) (NPM)
     command: 'pkill -f npm'
     ignore_errors: true
 
