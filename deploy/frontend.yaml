@@ -1,0 +1,26 @@
+- name: Update Web Servers
+  hosts: webservers
+
+  tasks:
+  - name: Install NodeJS
+    ansible.builtin.apt:
+      name: nodejs
+      state: latest
+
+  - name: Install NPM
+    ansible.builtin.apt:
+      name: npm
+      state: latest
+
+  - name: Get ScratchDB Repo
+    ansible.builtin.git:
+      repo: 'https://github.com/chathamabate/SDSubmission.git'
+      dest: ~/sd
+
+  - name: Install Dependencies
+    ansible.builtin.shell:
+      cmd: npm install
+      chdir: ~/sd/frontend
+
+
+
