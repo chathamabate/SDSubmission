@@ -57,4 +57,15 @@ npm run build
 
 ### Deployment
   
+Both the frontend and backend deploy to DigitalOcean servers using
+`Ansible`.
 
+```
+# Deploy frontend.
+ansible-playbook -i deploy/hosts/inventory.ini deploy/frontend.yaml
+
+# Deploy backend.
+ansible-playbook -i deploy/hosts/inventory.ini deploy/frontend.yaml
+```
+
+__NOTE__: Both playbooks require an sshkey file which is __NOT__ in this repo.
