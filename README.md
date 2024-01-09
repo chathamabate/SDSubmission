@@ -44,7 +44,6 @@ go build -o sd
   required a backend server. Ultimately, I decided to use vanilla `CSS`. Given more
   time, I would like to solve this problem.
 * The UI has two components: one for running queries, and one for uploading data.
-* As of now, the frontend always targets `localhost`.
 
 #### Build and Run
 ```bash
@@ -55,4 +54,7 @@ npm run build
 # After these commands static HTML can be found at...
 # frontend/public/index.html
 ```
+
+### Deployment
   
+
