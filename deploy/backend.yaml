@@ -1,6 +1,5 @@
 - name: Update DB Servers
   hosts: dbservers
-  
 
   tasks:
   - name: Install SQLite3
