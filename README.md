@@ -5,7 +5,7 @@ Hi Jay,
 Here is my submission for the Scratch Data take-home
 assignment. Please read the notes below about my approach.
 
-You view a public facing instance of the project [here](http://134.209.165.38:8080/).
+To view a public facing instance of the project [here](http://134.209.165.38:8080/).
 
 ## Project Notes
 
