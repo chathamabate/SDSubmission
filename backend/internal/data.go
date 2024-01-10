@@ -75,6 +75,71 @@ func verifyDenseJSON(objs []map[string]interface{}) error {
 	return nil
 }
 
+// NOTE: For the rest of this file we use "structure" to
+// refer to the columns and types of a table.
+// These are stored as a map[string]SDTypeID
+// A "structure" can never be empty.
+
+func structureEq(s1 map[string]SDTypeID, s2 map[string]SDTypeID) bool {
+	for k1, v1 := range s1 {
+		v2, ok := s2[k1]
+
+		if !ok || v1 != v2 {
+			return false
+		}
+	}
+
+	for k2, v2 := range s2 {
+		v1, ok := s1[k2]
+
+		if !ok || v1 != v2 {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Given a current structure (cs) and a required structure (rs) returns
+// a structure containing all columns in rs which are not in cs.
+//
+// NOTE: rs contains a column which is in cs, but maps to a different type,
+// an error is returned.
+func structureDiff(cs map[string]SDTypeID, rs map[string]SDTypeID) (map[string]SDTypeID, error) {
+	diff := make(map[string]SDTypeID)
+
+	for reqName, reqType := range rs {
+		currType, ok := cs[reqName]
+
+		if !ok {
+			diff[reqName] = reqType
+		} else if reqType != currType {
+			return nil, fmt.Errorf("Type mismatch on column %s", reqName)
+		}
+	}
+
+	return diff, nil
+}
+
+func structureString(s map[string]SDTypeID) string {
+	var sb strings.Builder
+
+	i := 0
+	for columnName, typeID := range s {
+		sb.WriteString(columnName)
+		sb.WriteString(" ")
+		sb.WriteString(SDTypeNames[typeID])
+
+		if i < len(s)-1 {
+			sb.WriteString(", ")
+		}
+
+		i++
+	}
+
+	return sb.String()
+}
+
 // Given a slice of JSON objects, returns a map which maps each
 // unique key name found to its corresponding type.
 //
@@ -146,65 +211,8 @@ func structureFromTable(db *sql.DB, table string) (map[string]SDTypeID, error) {
 	return s, nil
 }
 
-// Given a current structure (cs) and a required structure (rs) returns
-// a structure containing all columns in rs which are not in cs.
-//
-// NOTE: rs contains a column which is in cs, but maps to a different type,
-// an error is returned.
-func structureDiff(cs map[string]SDTypeID, rs map[string]SDTypeID) (map[string]SDTypeID, error) {
-	diff := make(map[string]SDTypeID)
 
-	for reqName, reqType := range rs {
-		currType, ok := cs[reqName]
 
-		if !ok {
-			diff[reqName] = reqType
-		} else if reqType != currType {
-			return nil, fmt.Errorf("Type mismatch on column %s", reqName)
-		}
-	}
-
-	return diff, nil
-}
-
-func structureEq(s1 map[string]SDTypeID, s2 map[string]SDTypeID) bool {
-	for k1, v1 := range s1 {
-		v2, ok := s2[k1]
-
-		if !ok || v1 != v2 {
-			return false
-		}
-	}
-
-	for k2, v2 := range s2 {
-		v1, ok := s1[k2]
-
-		if !ok || v1 != v2 {
-			return false
-		}
-	}
-
-	return true
-}
-
-func structureString(s map[string]SDTypeID) string {
-	var sb strings.Builder
-
-	i := 0
-	for columnName, typeID := range s {
-		sb.WriteString(columnName)
-		sb.WriteString(" ")
-		sb.WriteString(SDTypeNames[typeID])
-
-		if i < len(s)-1 {
-			sb.WriteString(", ")
-		}
-
-		i++
-	}
-
-	return sb.String()
-}
 
 // This function will create the given table if it doesn't exist.
 // Otherwise, it will alter the table if needed to conform to

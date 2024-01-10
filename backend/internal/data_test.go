@@ -84,6 +84,62 @@ func TestVerifyDenseJSON(t *testing.T) {
     }
 }
 
+type StructureEqCase struct {
+    name string
+    s1 map[string]SDTypeID 
+    s2 map[string]SDTypeID
+    eq bool
+}
+
+var StructureEqCases = []StructureEqCase {
+    {
+        name: "Equal Case 1",
+        s1: map[string]SDTypeID {"id": RealTypeID},
+        s2: map[string]SDTypeID {"id": RealTypeID},
+        eq: true,
+    },
+    {
+        name: "Equal Case 2",
+        s1: map[string]SDTypeID {"id": RealTypeID, "name": TextTypeID},
+        s2: map[string]SDTypeID {"id": RealTypeID, "name": TextTypeID},
+        eq: true,
+    },
+    {
+        name: "Non-Equal Case 1",
+        s1: map[string]SDTypeID {"id": RealTypeID},
+        s2: map[string]SDTypeID {"name": TextTypeID},
+        eq: false,
+    },
+    {
+        name: "Non-Equal Case 2",
+        s1: map[string]SDTypeID {"id": RealTypeID, "name": TextTypeID},
+        s2: map[string]SDTypeID {"id": RealTypeID},
+        eq: false,
+    },
+    {
+        name: "Non-Equal Case 3",
+        s1: map[string]SDTypeID {"id": RealTypeID},
+        s2: map[string]SDTypeID {"id": RealTypeID, "name": TextTypeID},
+        eq: false,
+    },
+}
+
+func TestStructureEq(t *testing.T) {
+    successful := true
+    for _, testCase := range StructureEqCases {
+        eqResult := structureEq(testCase.s1, testCase.s2)
+        if eqResult != testCase.eq {
+            t.Logf("Case Failure: %s", testCase.name)
+            successful = false
+        }
+    }
+
+    if !successful {
+        t.Fail()
+    }
+}
+
+
 func TestStructureFromJSON(t *testing.T) {
     json := []map[string]interface{}{
         {
