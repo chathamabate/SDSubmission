@@ -5,7 +5,7 @@ import (
 	sql "database/sql"
 	"encoding/json"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -20,20 +20,25 @@ import (
 func RunSQLiteServer(fn string) error {
 	_, err := os.Stat(fn)
 	if errors.Is(err, os.ErrNotExist) {
-		log.Printf("Creating new DB %s\n", fn)
+        slog.Info("Creating new DB", "db", fn)
+
 		f, err := os.Create(fn)
 		if err != nil {
+            slog.Error("Couldn't create DB", "db", fn, "error", err)
 			return err
 		}
+
 		f.Close()
 	} else if err != nil {
+        slog.Error("Couldn't create DB", "db", fn, "error", err)
 		return err // funky error running stat?
 	}
 
-	log.Printf("Openning DB %s\n", fn)
+    slog.Info("Openning DB", "db", fn)
 
 	db, err := sql.Open("sqlite3", fn)
 	if err != nil {
+        slog.Error("Couldn't open DB", "db", fn, "error", err)
 		return err
 	}
 	defer db.Close()
@@ -44,7 +49,8 @@ func RunSQLiteServer(fn string) error {
 
 	server := &http.Server{Addr: ":3000", Handler: mux}
 
-	log.Println("Starting server on port 3000")
+    slog.Info("Starting server", "port", 3000)
+
 	// Start up server in the background.
 	go func() {
 		server.ListenAndServe()
@@ -55,15 +61,18 @@ func RunSQLiteServer(fn string) error {
 
 	// Waiting for SIGINT (kill -2)
 	<-stop
-
-	log.Println("Shutting down server")
+    
+    slog.Info("Shutting down server")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel() // Used for cleaning up above context.
 
 	if err := server.Shutdown(ctx); err != nil {
+        slog.Error("Couldn't shut down server", "error", err)
 		return err
 	}
+
+    slog.Info("Server shutdown successfully")
 
 	return nil
 }
@@ -79,14 +88,18 @@ func RunSQLiteServer(fn string) error {
 // The message field can be used arbitrarily.
 // The intention is for it to hold error information
 // when needed.
-
-func writeError(w http.ResponseWriter, desc string, err error) {
-	emsg := "(" + desc + ")"
+//
+// This function should be used when the user sends a bad request
+// to the server. The error reported is not the server's fault.
+func writeUserError(w http.ResponseWriter, desc string, err error) {
+    emsg := desc
 
 	if err != nil {
-		emsg += " " + err.Error()
-		log.Println(emsg)
-	}
+		emsg += " (" + err.Error() + ")" 
+        slog.Debug("User request error", "description", desc, "error", err)
+	} else {
+        slog.Debug("User request error", "description", desc)
+    }
 
 	w.WriteHeader(http.StatusBadRequest)
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -115,21 +128,23 @@ func (qh queryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	args, err := url.ParseQuery(r.URL.RawQuery)
 
 	if err != nil {
-		writeError(w, "Error parsing query from URL", err)
+		writeUserError(w, "Error parsing query from URL", err)
 		return
 	}
 
 	q, ok := args["q"]
 	if !ok {
-		writeError(w, "Query not provided", nil)
+		writeUserError(w, "Query not provided", nil)
 		return
 	}
 
 	objs, err := query(qh.db, q[0])
 	if err != nil {
-		writeError(w, "Failed query", err)
+		writeUserError(w, "Failed query", err)
 		return
 	}
+
+    slog.Debug("Query success", "query", q[0])
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -153,13 +168,13 @@ func (ih insertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	args, err := url.ParseQuery(r.URL.RawQuery)
 
 	if err != nil {
-		writeError(w, "Error parsing query", err)
+		writeUserError(w, "Error parsing query", err)
 		return
 	}
 
 	t, ok := args["table"]
 	if !ok {
-		writeError(w, "Table not provided", nil)
+		writeUserError(w, "Table not provided", nil)
 		return
 	}
 
@@ -169,7 +184,7 @@ func (ih insertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&reqObj)
 
 	if err != nil {
-		writeError(w, "Error decoding request body", err)
+		writeUserError(w, "Error decoding request body", err)
 		return
 	}
 
@@ -182,21 +197,23 @@ func (ih insertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for i, entry := range v {
 			obj, ok := entry.(map[string]interface{})
 			if !ok {
-				writeError(w, "Unexpected request body type", nil)
+				writeUserError(w, "Unexpected request body type", nil)
 			}
 			reqSlice[i] = obj
 		}
 		break
 	default:
-		writeError(w, "Unexpected request body type", nil)
+		writeUserError(w, "Unexpected request body type", nil)
 		return
 	}
 
 	err = insert(ih.db, t[0], reqSlice)
 	if err != nil {
-		writeError(w, "Data insertion error", err)
+		writeUserError(w, "Data insertion error", err)
 		return
 	}
+
+    slog.Debug("Insert success", "table", t[0], "rows", len(reqSlice))
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
