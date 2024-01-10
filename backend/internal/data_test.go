@@ -19,26 +19,68 @@ func ErrorIf(t *testing.T, err error, msg string) {
     }
 }
 
+type VerifyDenseJSONCase struct {
+    name string
+    objs []map[string]interface{} 
+    isDense bool
+}
+
+var VerifyDenseJSONCases = []VerifyDenseJSONCase {
+    {
+        name: "Dense Case 1",
+        objs: []map[string]interface{}{
+            {"f1": 5},
+        },
+        isDense: true,
+    },
+    {
+        name: "Dense Case 2",
+        objs: []map[string]interface{}{
+            {"f1": 5},
+            {"f1": 6, "f2": 12},
+            {"f1": 124, "f2": 12},
+        },
+        isDense: true,
+    },
+    {
+        name: "Non Dense Case 1",
+        objs: []map[string]interface{}{
+            {"f1": 5},
+            {},
+            {"f1": 124, "f2": 12},
+        },
+        isDense: false,
+    },
+    {
+        name: "Non Dense Case 2",
+        objs: []map[string]interface{}{
+            {},
+            {"f1": 124, "f2": 12},
+            {},
+        },
+        isDense: false,
+    },
+    {
+        name: "Non Dense Case 3",
+        objs: nil,
+        isDense: false,
+    },
+}
+
 func TestVerifyDenseJSON(t *testing.T) {
-    json := make([]map[string]interface{}, 0)
+    success := true
+    for _, testCase := range VerifyDenseJSONCases {
+        err := verifyDenseJSON(testCase.objs)
+        isDenseResult := err == nil
+        
+        if isDenseResult != testCase.isDense {
+            t.Logf("Case Failure: %s", testCase.name)
+            success = false
+        }
+    }
     
-    if verifyDenseJSON(json) == nil {
-        t.Error("Empty slice is marked dense")
-    }
-
-    json = append(json, map[string]interface{}{
-        "col1": 2,
-        "col2": "text",
-    })
-
-    if verifyDenseJSON(json) != nil {
-        t.Error("Dense slice is marked not dense")
-    }
-
-    json = append(json, make(map[string]interface{}))
-
-    if verifyDenseJSON(json) == nil {
-        t.Error("Not dense slice is marked dense")
+    if !success {
+        t.Fail()
     }
 }
 
