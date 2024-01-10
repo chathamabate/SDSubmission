@@ -88,10 +88,8 @@ func RunSQLiteServer(fn string) error {
 // The message field can be used arbitrarily.
 // The intention is for it to hold error information
 // when needed.
-//
-// This function should be used when the user sends a bad request
-// to the server. The error reported is not the server's fault.
-func writeUserError(w http.ResponseWriter, desc string, err error) {
+
+func WriteError(w http.ResponseWriter, desc string, err error) {
     emsg := desc
 
 	if err != nil {
@@ -128,19 +126,19 @@ func (qh queryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	args, err := url.ParseQuery(r.URL.RawQuery)
 
 	if err != nil {
-		writeUserError(w, "Error parsing query from URL", err)
+		WriteError(w, "Error parsing query from URL", err)
 		return
 	}
 
 	q, ok := args["q"]
 	if !ok {
-		writeUserError(w, "Query not provided", nil)
+		WriteError(w, "Query not provided", nil)
 		return
 	}
 
 	objs, err := query(qh.db, q[0])
 	if err != nil {
-		writeUserError(w, "Failed query", err)
+		WriteError(w, "Failed query", err)
 		return
 	}
 
@@ -168,13 +166,13 @@ func (ih insertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	args, err := url.ParseQuery(r.URL.RawQuery)
 
 	if err != nil {
-		writeUserError(w, "Error parsing query", err)
+		WriteError(w, "Error parsing query", err)
 		return
 	}
 
 	t, ok := args["table"]
 	if !ok {
-		writeUserError(w, "Table not provided", nil)
+		WriteError(w, "Table not provided", nil)
 		return
 	}
 
@@ -184,7 +182,7 @@ func (ih insertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&reqObj)
 
 	if err != nil {
-		writeUserError(w, "Error decoding request body", err)
+		WriteError(w, "Error decoding request body", err)
 		return
 	}
 
@@ -197,19 +195,19 @@ func (ih insertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for i, entry := range v {
 			obj, ok := entry.(map[string]interface{})
 			if !ok {
-				writeUserError(w, "Unexpected request body type", nil)
+				WriteError(w, "Unexpected request body type", nil)
 			}
 			reqSlice[i] = obj
 		}
 		break
 	default:
-		writeUserError(w, "Unexpected request body type", nil)
+		WriteError(w, "Unexpected request body type", nil)
 		return
 	}
 
 	err = insert(ih.db, t[0], reqSlice)
 	if err != nil {
-		writeUserError(w, "Data insertion error", err)
+		WriteError(w, "Data insertion error", err)
 		return
 	}
 
