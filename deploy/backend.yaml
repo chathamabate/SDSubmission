@@ -27,7 +27,7 @@
     ignore_errors: true
 
   - name: Start New Server
-    command: '~/sd-server -ll=INFO -lfn=sd-server.log'
+    command: '~/sd-server -ll=INFO -lf=sd-server.log'
     async: 604800 
     poll: 0
 
