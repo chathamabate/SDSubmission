@@ -43,7 +43,7 @@ func SDGetTypeID(v interface{}) (SDTypeID, error) {
 		return TextTypeID, nil
 	}
 
-	return 0, errors.New("Unknown type!!!")
+	return 0, errors.New("Unknown type")
 }
 
 func SDValToString(v interface{}) (string, error) {
