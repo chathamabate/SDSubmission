@@ -78,7 +78,6 @@ func verifyDenseJSON(objs []map[string]interface{}) error {
 // NOTE: For the rest of this file we use "structure" to
 // refer to the columns and types of a table.
 // These are stored as a map[string]SDTypeID
-// A "structure" can never be empty.
 
 func structureEq(s1 map[string]SDTypeID, s2 map[string]SDTypeID) bool {
 	for k1, v1 := range s1 {

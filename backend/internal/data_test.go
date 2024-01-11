@@ -237,37 +237,77 @@ func TestStructureDiff(t *testing.T) {
 }
 
 
+type StructureFromJSONCase struct {
+    name string
+    json []map[string]interface{}
+    structure map[string]SDTypeID
+    shouldFail bool
+}
+
+var StructureFromJSONCases = []StructureFromJSONCase{
+    {
+        name: "Empty Case 1",
+        json: []map[string]interface{}{},
+        structure: map[string]SDTypeID{},
+        shouldFail: false,
+    },
+    {
+        name: "Empty Case 2",
+        json: []map[string]interface{}{{}, {}},
+        structure: map[string]SDTypeID{},
+        shouldFail: false,
+    },
+    {
+        name: "Simple Case 1",
+        json: []map[string]interface{}{
+            {"col1": 23, "col2": "Hello"},
+        },
+        structure: map[string]SDTypeID{
+            "col1": RealTypeID, "col2": TextTypeID,
+        },
+        shouldFail: false,
+    },
+    {
+        name: "Simple Case 2",
+        json: []map[string]interface{}{
+            {"col1": 23},
+            {"col2": "Hello"},
+        },
+        structure: map[string]SDTypeID{
+            "col1": RealTypeID, "col2": TextTypeID,
+        },
+        shouldFail: false,
+    },
+    {
+        name: "Failure Case 1",
+        json: []map[string]interface{}{
+            {"col1": 23},
+            {"col1": "Hello"},
+        },
+        shouldFail: true,
+    },
+}
+
+
 func TestStructureFromJSON(t *testing.T) {
-    json := []map[string]interface{}{
-        {
-            "name": "Bob",
-        },
-        {
-            "age": 22,
-        },
-        {
-            "name": "Dave",
-            "age": 23,
-            "town": "Dover",
-        },
-        {
-            "name": "Mark",
-            "zip": 22332,
-        },
+    successful := true
+    for _, testCase := range StructureFromJSONCases {
+        structure, err := structureFromJSON(testCase.json)
+
+        if err != nil && !testCase.shouldFail {
+            t.Logf("Unexpected Failure %s (%s)", testCase.name, err)
+            successful = false
+        } else if err == nil && testCase.shouldFail {
+            t.Logf("Unexpected Success %s", testCase.name)
+            successful = false
+        } else if !testCase.shouldFail && !structureEq(structure, testCase.structure) {
+            t.Logf("Case Failure: %s %v", testCase.name, structure)
+            successful = false
+        }
     }
 
-    acts, err := structureFromJSON(json)
-    ErrorIf(t, err, "Error reading JSON")
-
-    exps := map[string]SDTypeID {
-        "name": TextTypeID,
-        "age": RealTypeID,
-        "town": TextTypeID,
-        "zip": RealTypeID,
-    }
-
-    if !structureEq(acts, exps) {
-        t.Error("Structure mismatch")
+    if !successful {
+        t.Fail()
     }
 }
 
