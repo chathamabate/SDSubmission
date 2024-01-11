@@ -139,6 +139,103 @@ func TestStructureEq(t *testing.T) {
     }
 }
 
+type StructureDiffCase struct {
+    name string
+    cs map[string]SDTypeID
+    rs map[string]SDTypeID
+    diff map[string]SDTypeID
+    shouldFail bool
+}
+
+var StructureDiffCases = []StructureDiffCase{
+    {
+        name: "Both Empty Case",
+        cs: map[string]SDTypeID{},
+        rs: map[string]SDTypeID{},
+        diff: map[string]SDTypeID{},
+        shouldFail: false,
+    },
+    {
+        name: "Empty Required Structure Case",
+        cs: map[string]SDTypeID{
+            "col1": RealTypeID,
+        },
+        rs: map[string]SDTypeID{},
+        diff: map[string]SDTypeID{},
+        shouldFail: false,
+    },
+    {
+        name: "Empty Current Structure Case",
+        cs: map[string]SDTypeID{},
+        rs: map[string]SDTypeID{
+            "col1": RealTypeID,
+        },
+        diff: map[string]SDTypeID{
+            "col1": RealTypeID,
+        },
+        shouldFail: false,
+    },
+    {
+        name: "Simple Case 1",
+        cs: map[string]SDTypeID{
+            "col1": RealTypeID,
+        },
+        rs: map[string]SDTypeID{
+            "col1": RealTypeID,
+        },
+        diff: map[string]SDTypeID{
+        },
+        shouldFail: false,
+    },
+    {
+        name: "Simple Case 2",
+        cs: map[string]SDTypeID{
+            "col1": RealTypeID,
+            "col2": RealTypeID,
+        },
+        rs: map[string]SDTypeID{
+            "col1": RealTypeID,
+            "col3": RealTypeID,
+        },
+        diff: map[string]SDTypeID{
+            "col3": RealTypeID,
+        },
+        shouldFail: false,
+    },
+    {
+        name: "Fail Case",
+        cs: map[string]SDTypeID{
+            "col1": RealTypeID,
+        },
+        rs: map[string]SDTypeID{
+            "col1": TextTypeID,
+        },
+        shouldFail: true,
+    },
+}
+
+func TestStructureDiff(t *testing.T) {
+    successful := true
+    for _, testCase := range StructureDiffCases {
+        diff, err := structureDiff(testCase.cs, testCase.rs) 
+
+        if err != nil && !testCase.shouldFail {
+            t.Logf("Unexpected Failure %s (%s)", testCase.name, err)
+            successful = false
+        } else if err == nil && testCase.shouldFail {
+            t.Logf("Unexpected Success %s", testCase.name)
+            successful = false
+        } else if !testCase.shouldFail && !structureEq(diff, testCase.diff) {
+            t.Logf("Case Failure: %s %v", testCase.name, diff)
+            successful = false
+        }
+    }
+
+    if !successful {
+        t.Fail()
+    }
+}
+
 
 func TestStructureFromJSON(t *testing.T) {
     json := []map[string]interface{}{
