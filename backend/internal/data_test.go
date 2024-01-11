@@ -236,7 +236,6 @@ func TestStructureDiff(t *testing.T) {
     }
 }
 
-
 type StructureFromJSONCase struct {
     name string
     json []map[string]interface{}
@@ -323,6 +322,7 @@ func prepareDB(t *testing.T) *sql.DB {
     return db
 }
 
+// There really only needs to be one test for this.
 func TestStructureFromTable(t *testing.T) {
     db := prepareDB(t)
     defer db.Close()
