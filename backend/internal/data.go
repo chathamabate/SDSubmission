@@ -4,6 +4,7 @@ import (
 	sql "database/sql"
 	"errors"
 	"fmt"
+    "reflect"
 	"strconv"
 	"strings"
 )
@@ -377,10 +378,10 @@ func query(db *sql.DB, q string) ([]map[string]interface{}, error) {
 	}
 	defer rows.Close()
 
-	columnTypes, err := rows.ColumnTypes()
-	if err != nil {
-		return nil, err
-	}
+    colTypes, err := rows.ColumnTypes()
+    if err != nil {
+        return nil, err
+    }
 
 	colNames, err := rows.Columns()
 	if err != nil {
@@ -389,46 +390,54 @@ func query(db *sql.DB, q string) ([]map[string]interface{}, error) {
 
 	// NOTE: This approach I took almost entirely from Stackoverflow.
 
-	numColumns := len(columnTypes)
+    // used for allocation & dereferencing
+    rowValues := make([]reflect.Value, len(colTypes))
+    for i, ct := range colTypes {
+        rowValues[i] = reflect.New(reflect.PtrTo(ct.ScanType()))
+    }
+
+	numCols := len(colNames)
 	finalRows := make([]map[string]interface{}, 0)
 
-	for rows.Next() {
-		scanArgs := make([]interface{}, numColumns)
+    for rows.Next() {
+        // initially will hold pointers for Scan, after scanning the
+        // pointers will be dereferenced so that the slice holds actual values
+        rowResult := make([]interface{}, numCols)
+        for i, rv := range rowValues {
+            rowResult[i] = rv.Interface()
+        }
 
-		for i, v := range columnTypes {
-			switch v.DatabaseTypeName() {
-			case "TEXT":
-				scanArgs[i] = new(sql.NullString)
-				break
-			case "REAL":
-				scanArgs[i] = new(sql.NullFloat64)
-				break
-			default:
-				return nil, fmt.Errorf("Unknown type %s", v.DatabaseTypeName())
-			}
-		}
+        // scan each column value into the corresponding **T value
+        err = rows.Scan(rowResult...)
+        if err != nil {
+            return nil, err
+        }
 
-		err := rows.Scan(scanArgs...)
-		if err != nil {
-			return nil, err
-		}
+        finalRow := make(map[string]interface{})
 
-		obj := make(map[string]interface{})
-		for i, colName := range colNames {
-			switch v := scanArgs[i].(type) {
-			case *sql.NullString:
-				obj[colName] = v.String
-				break
-			case *sql.NullFloat64:
-				obj[colName] = v.Float64
-				break
-			default:
-				return nil, fmt.Errorf("Unknown type at column %d", i)
-			}
-		}
+        for i, rv := range rowValues {
+            v := rv.Elem()
 
-		finalRows = append(finalRows, obj)
-	}
+            if v.IsNil() {
+                finalRow[colNames[i]] = nil
+                continue
+            }
+
+            switch v := rv.Elem().Interface().(type) {
+            case *sql.NullFloat64:
+                finalRow[colNames[i]] = v.Float64
+                break
+            case *sql.NullString:
+                finalRow[colNames[i]] = v.String
+                break
+            default:
+                finalRow[colNames[i]] = v
+                break
+            }
+        }
+        
+        finalRows = append(finalRows, finalRow)
+    }
 
 	return finalRows, nil
 }
