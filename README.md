@@ -27,16 +27,6 @@ To view a public facing instance of the project [here](http://134.209.165.38:808
 * The server does have a simple shutdown procedure which closes the database
   before exiting.
 
-#### Known Bugs
-
-There is an issue with the `query` endpoint when selecting rows which are
-not part of the underlying table. 
-
-```SQL
--- If there exists a table "people" with columns (firstname TEXT, lastname TEXT),
--- the following query, while valid, will cause a typing error.
-SELECT (p.firstname || " " || p.lastname) AS fullname FROM people p;
-```
 
 #### Build and Run
 
