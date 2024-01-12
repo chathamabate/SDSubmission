@@ -4,7 +4,8 @@ import (
 	sql "database/sql"
 	"errors"
 	"fmt"
-    "reflect"
+	"log/slog"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -266,8 +267,12 @@ func conformTable(db *sql.DB, table string, rs map[string]SDTypeID) error {
 	// TODO: With more time, this should be addressed in a better way.
 
 	for colName, colType := range ds {
-		db.Exec("ALTER TABLE " + table +
+		_, err = db.Exec("ALTER TABLE " + table +
 			" ADD COLUMN " + colName + " " + SDTypeNames[colType] + ";")
+
+       if err != nil {
+            slog.Debug("Error Altering Table", "description", err.Error())
+       }
 	}
 
 	return nil
